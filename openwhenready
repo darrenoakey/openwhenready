@@ -1,0 +1,33 @@
+#!/bin/sh
+# openwhenready — poll a URL every second, open it when ready (2xx/3xx), timeout after 10 minutes
+
+if [ $# -lt 1 ]; then
+  echo "Usage: openwhenready [--chrome] <url>"
+  exit 1
+fi
+
+# Determine browser
+if [ "$1" = "--chrome" ]; then
+  OPEN_COMMAND='open -a "Google Chrome"'
+  shift
+else
+  OPEN_COMMAND='open'
+fi
+
+TARGET="$1"
+TIMEOUT=600
+WAITED=0
+
+(
+  while [ "$WAITED" -lt "$TIMEOUT" ]; do
+    if curl --silent --head --fail --location --max-time 2 "$TARGET" > /dev/null; then
+      eval "$OPEN_COMMAND \"$TARGET\""
+      exit 0
+    fi
+    sleep 1
+    WAITED=$((WAITED + 1))
+  done
+
+  echo "ERROR: $TARGET not ready after $TIMEOUT seconds" >&2
+  exit 1
+) & disown
